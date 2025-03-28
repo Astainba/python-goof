@@ -19,6 +19,13 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f pip-sample/requirements.txt ]; then pip install -r pip-sample/requirements.txt; fi
+          if [ -f pipenv-sample/requirements.txt ]; then pip install -r pipenv-sample/requirements.txt; fi
+
       - name: Install Snyk CLI
         uses: snyk/actions/setup@master
 
