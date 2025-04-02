@@ -105,7 +105,7 @@ jobs:
             output += `🟠 ${highCount} high vulnerability occurrences across ${highPackages.size} unique packages\n`;
             output += `**${totalUniquePackages} total affected packages (${totalOccurrences} total issues)**\n\n`;
 
-            output += `| Severity | Package | Dependency Type | CVSS | Occurrences | Vuln Type | Fix Available | Advisor |\n`;
+            output += `| Severity | Package | Dependency Type | CVSS | Occurrences | Vulnerability Type | Fix Available | Advisor |\n`;
             output += `|----------|---------|------------------|------|-------------|----------|---------------|---------|\n`;
 
             for (const [key, { vuln, count, titles, severity }] of vulnMap.entries()) {
