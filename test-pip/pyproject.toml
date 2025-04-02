@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "SimplePackage"
+version = "1.0.0"
+description = "A simple python package to illustrate dependency management with Poetry"
+authors = ['Snyk']
+
+[tool.poetry.dependencies]
+python = "^3.6"
+jinja2 = "2.10.1"
+ihatemoney = "4.1.4"
+fastecdsa = "2.1.3"
+
+[tool.poetry.dev-dependencies]
+isOdd = "0.1.2"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
