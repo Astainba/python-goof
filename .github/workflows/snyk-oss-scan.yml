@@ -50,6 +50,8 @@ jobs:
           const severityRank = s => ({critical: 4, high: 3}[s] || 0);
           const severityIcons = { critical: '🔴', high: '🟠' };
           const manifestGroups = {};
+          const repoUrl = process.env.GITHUB_SERVER_URL + '/' + process.env.GITHUB_REPOSITORY;
+          const branch = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || 'main';
 
           const projects = Array.isArray(data) ? data : [data];
 
@@ -96,8 +98,9 @@ jobs:
             }
 
             const totalUniquePackages = vulnMap.size;
+            const manifestLink = `${repoUrl}/blob/${branch}/${file}`;
 
-            output += `### 📦 ${file}  \n`;
+            output += `### 📦 [${file}](${manifestLink})  \n`;
             output += `🔴 ${criticalCount} critical vulnerability occurrences across ${criticalPackages.size} unique packages\n`;
             output += `🟠 ${highCount} high vulnerability occurrences across ${highPackages.size} unique packages\n`;
             output += `**${totalUniquePackages} total affected packages (${totalOccurrences} total issues)**\n\n`;
