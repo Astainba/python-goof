@@ -25,6 +25,7 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           if [ -f pip-sample/requirements.txt ]; then pip install -r pip-sample/requirements.txt; fi
           if [ -f pipenv-sample/requirements.txt ]; then pip install -r pipenv-sample/requirements.txt; fi
+          if [ -f pipenv-sample/requirements.txt ]; then pip install -r pipenv-sample/requirements.txt; fi
 
       - name: Install Snyk CLI
         uses: snyk/actions/setup@master
@@ -101,8 +102,8 @@ jobs:
             output += `🟠 ${highCount} high vulnerability occurrences across ${highPackages.size} unique packages\n`;
             output += `**${totalUniquePackages} total affected packages (${totalOccurrences} total issues)**\n\n`;
 
-            output += `| Severity | Package | Occurrences | Title | Fix Available | Advisor |\n`;
-            output += `|----------|---------|-------------|-------|----------------|---------|\n`;
+            output += `| Severity | Package | Score | Occurrences | Title | Fix Available | Advisor |\n`;
+            output += `|----------|---------|-------|-------------|-------|----------------|---------|\n`;
 
             for (const [key, { vuln, count, titles, severity }] of vulnMap.entries()) {
               const icon = severityIcons[severity] || '';
@@ -111,7 +112,11 @@ jobs:
               const advisorUrl = `https://security.snyk.io/package/pip/${vuln.packageName}/${vuln.version}`;
               const fix = vuln.fixedIn?.[0] || 'N/A';
               const title = [...titles][0];
-              output += `| ${icon} ${severity.toUpperCase()} | [${vuln.packageName}@${vuln.version}](${pkgUrl}) | ${count} | [${title}](${snykUrl}) | ${fix} | [View](${advisorUrl}) |\n`;
+
+              let score = vuln.cvssScore || (vuln.cvssDetails?.[0]?.cvssV3BaseScore || 'N/A');
+              if (typeof score === 'number') score = score.toFixed(1);
+
+              output += `| ${icon} ${severity.toUpperCase()} | [${vuln.packageName}@${vuln.version}](${pkgUrl}) | ${score} | ${count} | [${title}](${snykUrl}) | ${fix} | [View](${advisorUrl}) |\n`;
             }
             output += '\n';
           }
