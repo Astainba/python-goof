@@ -62,7 +62,8 @@ jobs:
           }
 
           let output = '<!-- SNYK_OSS_SUMMARY -->\n';
-          output += '## <img src="https://cdn.brandfetch.io/id8lDQ6AMj/idG0kOimA5.svg?c=1dxbfHSJFAPEGdCLU4o5B" alt="Snyk" height="46" /> Snyk OSS Vulnerabilities by Manifest\n\n';
+          output += `<img src="https://cdn.brandfetch.io/id8lDQ6AMj/idG0kOimA5.svg?c=1dxbfHSJFAPEGdCLU4o5B" height="36" style="vertical-align: middle;" /> <span style="font-size: 1.5em; vertical-align: middle;"><strong>Snyk OSS Vulnerabilities by Manifest</strong></span>\n\n`;
+
 
           for (const file in manifestGroups) {
             const vulns = manifestGroups[file].sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
