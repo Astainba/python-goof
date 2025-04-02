@@ -131,7 +131,7 @@ jobs:
 
           output += '\n---\n';
           output += `### ℹ️ Summary Notes\n`;
-          output += `- **Dependency Type**: _Direct_ = 🔹 _Dependency Type_: Determined using Snyk’s internal path chain (`from[]`). Direct = installed by you. Transitive = pulled in by another dependency.\n`;
+          output += '- **Dependency Type** is based on the path from your manifest to the vulnerable package (via Snyk’s `from[]` chain).  \n';
           output += `- **Occurrences**: Number of separate dependency paths that lead to the same vulnerable package/version.\n`;
 
           fs.writeFileSync('pr-comment.md', output);
