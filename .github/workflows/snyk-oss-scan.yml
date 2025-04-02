@@ -102,8 +102,8 @@ jobs:
             output += `🟠 ${highCount} high vulnerability occurrences across ${highPackages.size} unique packages\n`;
             output += `**${totalUniquePackages} total affected packages (${totalOccurrences} total issues)**\n\n`;
 
-            output += `| Severity | Package | CVSS | Occurrences | Title | Fix Available | Advisor |\n`;
-            output += `|----------|---------|------|-------------|-------|---------------|---------|\n`;
+            output += `| Severity | Package | Type | CVSS | Occurrences | Title | Fix Available | Advisor |\n`;
+            output += `|----------|---------|------|------|-------------|-------|---------------|---------|\n`;
 
             for (const [key, { vuln, count, titles, severity }] of vulnMap.entries()) {
               const icon = severityIcons[severity] || '';
@@ -116,7 +116,10 @@ jobs:
               let score = vuln.cvssScore || (vuln.cvssDetails?.[0]?.cvssV3BaseScore || 'N/A');
               if (typeof score === 'number') score = score.toFixed(1);
 
-              output += `| ${icon} ${severity.toUpperCase()} | [${vuln.packageName}@${vuln.version}](${pkgUrl}) | ${score} | ${count} | [${title}](${snykUrl}) | ${fix} | [View](${advisorUrl}) |\n`;
+              const isTransitive = vuln.from?.length > 2;
+              const type = isTransitive ? 'Transitive' : 'Direct';
+
+              output += `| ${icon} ${severity.toUpperCase()} | [${vuln.packageName}@${vuln.version}](${pkgUrl}) | ${type} | ${score} | ${count} | [${title}](${snykUrl}) | ${fix} | [View](${advisorUrl}) |\n`;
             }
             output += '\n';
           }
