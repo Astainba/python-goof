@@ -28,6 +28,6 @@ jobs:
         uses: snyk/actions/setup@master
 
       - name: Run Snyk OSS scan (fail on high/critical)
-        run: snyk test --severity-threshold=high --fail-on=all
+        run: snyk test --severity-threshold=high --fail-on=all --all-projects
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
