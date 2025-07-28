@@ -32,26 +32,41 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-      - name: Fail only on fixable high/critical vulnerabilities
-        run: |
-          node -e "
-          const fs = require('fs');
-          const data = JSON.parse(fs.readFileSync('snyk-results.json', 'utf8'));
-          const projects = Array.isArray(data) ? data : [data];
-          let fail = false;
-          for (const proj of projects) {
-            for (const v of proj.vulnerabilities || []) {
-              const isFixable = v.isUpgradable || v.isPatchable || (v.fixedIn && v.fixedIn.length > 0);
-              if (['high', 'critical'].includes(v.severity) && isFixable) {
-                console.error(\`🚨 Fixable \${v.severity} issue in \${v.packageName}@\${v.version}\`);
-                fail = true;
-              }
-            }
-          }
-          if (fail) {
-            console.error('⛔ Gating failed: Fixable high/critical vulnerabilities detected.');
-            process.exit(1);
-          } else {
-            console.log('✅ No fixable high/critical vulnerabilities found.');
-          }
-          "
+      - - name: Fail only on fixable high/critical vulnerabilities
+  run: |
+    node -e "
+    const fs = require('fs');
+    const data = JSON.parse(fs.readFileSync('snyk-results.json', 'utf8'));
+    const projects = Array.isArray(data) ? data : [data];
+    let fail = false;
+    const matched = [];
+
+    for (const proj of projects) {
+      const manifest = proj.displayTargetFile || proj.targetFile || proj.projectName || 'unknown';
+      for (const v of proj.vulnerabilities || []) {
+        const isFixable = v.isUpgradable || v.isPatchable || (v.fixedIn && v.fixedIn.length > 0);
+        if (['high', 'critical'].includes(v.severity) && isFixable) {
+          matched.push({
+            severity: v.severity,
+            package: v.packageName,
+            version: v.version,
+            fixedIn: v.fixedIn?.join(', ') || 'N/A',
+            title: v.title || '',
+            manifest
+          });
+          fail = true;
+        }
+      }
+    }
+
+    if (fail) {
+      console.error('⛔ Gating failed due to the following fixable high/critical vulnerabilities:\n');
+      matched.forEach(vuln => {
+        console.error(\`🔴 [\${vuln.severity.toUpperCase()}] \${vuln.package}@\${vuln.version} (\${vuln.title})\n     Manifest: \${vuln.manifest}\n     Fix Available: \${vuln.fixedIn}\n\`);
+      });
+      console.error(\`Total: \${matched.length} fixable high/critical vulnerabilities\n\`);
+      process.exit(1);
+    } else {
+      console.log('✅ No fixable high/critical vulnerabilities found.');
+    }
+    "
