@@ -1,4 +1,4 @@
-name: (Pip) Snyk OSS Gated Scan with PR Summary
+name: Snyk OSS Gating Check
 
 on:
   pull_request:
@@ -7,97 +7,27 @@ env:
   SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
 jobs:
-  snyk-oss-scan:
+  snyk-gate:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: Set up Python (if needed)
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      - name: Install Python dependencies (if present)
+      - name: Install dependencies (if present)
         run: |
           python -m pip install --upgrade pip
-          for f in $(find . -name requirements.txt); do pip install -r "$f"; done
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Install Snyk CLI
         uses: snyk/actions/setup@master
 
-      - name: Run Snyk OSS test (fail on high/critical)
-        run: snyk test --all-projects --severity-threshold=high --fail-on=all --json > snyk-results.json
-
-      - name: Generate markdown PR summary
-        run: |
-          node <<'EOF'
-          const fs = require('fs');
-          const data = JSON.parse(fs.readFileSync('snyk-results.json', 'utf8'));
-          const severityRank = s => ({critical: 2, high: 1}[s] || 0);
-          const severityIcons = { critical: '🔴', high: '🟠' };
-          const manifestGroups = {};
-          const repoUrl = process.env.GITHUB_SERVER_URL + '/' + process.env.GITHUB_REPOSITORY;
-          const branch = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || 'main';
-          const projects = Array.isArray(data) ? data : [data];
-          for (const project of projects) {
-            const manifest = project.displayTargetFile || project.targetFile || project.projectName || 'unknown';
-            for (const vuln of project.vulnerabilities || []) {
-              if (!['critical', 'high'].includes(vuln.severity)) continue;
-              manifestGroups[manifest] = manifestGroups[manifest] || [];
-              manifestGroups[manifest].push(vuln);
-            }
-          }
-
-          let output = '<!-- SNYK_OSS_SUMMARY -->\n';
-          output += '## 🛡️ Snyk OSS Vulnerabilities by Manifest\n\n';
-
-          for (const file in manifestGroups) {
-            const vulns = manifestGroups[file].sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
-            const manifestLink = `${repoUrl}/blob/${branch}/${file}`;
-            output += `### 📦 [${file}](${manifestLink})\n`;
-            output += `| Severity | Package | Version | CVSS | Fix | Title |\n`;
-            output += `|----------|---------|---------|------|-----|-------|\n`;
-            for (const v of vulns) {
-              const icon = severityIcons[v.severity] || '';
-              const pkgUrl = `https://pypi.org/project/${v.packageName}/${v.version}/`;
-              const fix = v.fixedIn?.length ? v.fixedIn.join(', ') : 'N/A';
-              const score = typeof v.cvssScore === 'number' ? v.cvssScore.toFixed(1) : 'N/A';
-              const title = v.title || '';
-              const vulnUrl = v.id ? `https://security.snyk.io/vuln/${v.id}` : '';
-              output += `| ${icon} ${v.severity.toUpperCase()} | [${v.packageName}](${pkgUrl}) | ${v.version} | ${score} | ${fix} | [${title}](${vulnUrl}) |\n`;
-            }
-            output += '\n';
-          }
-
-          if (output.trim().length < 100) {
-            output += '_✅ No high or critical vulnerabilities found._\n';
-          }
-
-          fs.writeFileSync('snyk-summary.md', output);
-          EOF
-
-      - name: Output summary to Checks tab
-        run: cat snyk-summary.md >> $GITHUB_STEP_SUMMARY
-
-      - name: Post or update PR comment
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const fs = require('fs');
-            const commentBody = fs.readFileSync('snyk-summary.md', 'utf8');
-            const { owner, repo, number } = context.issue;
-
-            const comments = await github.rest.issues.listComments({ owner, repo, issue_number: number });
-            const existing = comments.data.find(c => c.body.includes('<!-- SNYK_OSS_SUMMARY -->'));
-
-            if (existing) {
-              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body: commentBody });
-            } else {
-              await github.rest.issues.createComment({ owner, repo, issue_number: number, body: commentBody });
-            }
+      - name: Run Snyk OSS scan (fail on high/critical)
+        run: snyk test --severity-threshold=high --fail-on=all
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
