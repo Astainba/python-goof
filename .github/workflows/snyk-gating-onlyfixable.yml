@@ -28,7 +28,7 @@ jobs:
         uses: snyk/actions/setup@master
 
       - name: Run Snyk OSS scan and save output
-        run: snyk test --all-projects --json > snyk-results.json || true
+        run: snyk test --all-projects --json --project-lifecycle=net-new > snyk-results.json || true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
