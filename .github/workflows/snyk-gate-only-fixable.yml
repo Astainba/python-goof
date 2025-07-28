@@ -1,0 +1,73 @@
+name: Snyk OSS Gating Check (only fixables)
+
+on:
+  pull_request:
+
+env:
+  SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+jobs:
+  snyk-gate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python (if needed)
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies (if present)
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Install Snyk CLI
+        uses: snyk/actions/setup@master
+
+      - name: Run Snyk OSS scan and save output
+        run: snyk test --all-projects --json --project-lifecycle=net-new > snyk-results.json || true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+     - name: Fail only on fixable high/critical vulnerabilities
+  run: |
+    node -e "
+    const fs = require('fs');
+    const data = JSON.parse(fs.readFileSync('snyk-results.json', 'utf8'));
+    const projects = Array.isArray(data) ? data : [data];
+    const unique = new Map();
+
+    for (const proj of projects) {
+      const manifest = proj.displayTargetFile || proj.targetFile || proj.projectName || 'unknown';
+      for (const v of proj.vulnerabilities || []) {
+        const isFixable = v.isUpgradable || v.isPatchable || (v.fixedIn && v.fixedIn.length > 0);
+        if (['high', 'critical'].includes(v.severity) && isFixable) {
+          const key = `${v.packageName}@${v.version}::${v.id || v.title || ''}`;
+          if (!unique.has(key)) {
+            unique.set(key, {
+              severity: v.severity,
+              package: v.packageName,
+              version: v.version,
+              title: v.title || '',
+              fixedIn: v.fixedIn?.join(', ') || 'N/A',
+              manifest
+            });
+          }
+        }
+      }
+    }
+
+    if (unique.size > 0) {
+      console.error('⛔ Gating failed due to the following **unique fixable high/critical** vulnerabilities:\n');
+      for (const vuln of unique.values()) {
+        console.error(\`🔴 [\${vuln.severity.toUpperCase()}] \${vuln.package}@\${vuln.version} - \${vuln.title}\n    Fix: \${vuln.fixedIn}\n    Manifest: \${vuln.manifest}\n\`);
+      }
+      console.error(\`Total unique fixable high/critical issues: \${unique.size}\`);
+      process.exit(1);
+    } else {
+      console.log('✅ No fixable high/critical vulnerabilities found.');
+    }
+    "
