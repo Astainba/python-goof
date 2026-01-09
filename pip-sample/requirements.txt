@@ -1,3 +1,4 @@
 flask==0.12         # known XSS vuln
 PyYAML==5.1         # arbitrary code execution
 requests==2.19.0    # SSL bypass
+urllib3>=2.6.3 # not directly required, pinned by Snyk to avoid a vulnerability
