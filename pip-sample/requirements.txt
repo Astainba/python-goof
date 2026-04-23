@@ -1,3 +1,3 @@
 flask==0.12         # known XSS vuln
-PyYAML==5.1         # arbitrary code execution
+PyYAML==5.2         # arbitrary code execution
 requests==2.19.0    # SSL bypass
